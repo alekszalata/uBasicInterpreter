@@ -6,17 +6,12 @@
 
 #include "analyzer.h"
 
-//-------------------------------------------------------------
+#define size 2000
 
-#define PROG_SIZE 500
-
-//Объявление переменных
 char *program;
 char *p_buf; //Указатель начала буфера программы
 
-//Объявление функций
-int loadProgram(char*, char*); //Считывает программу
-
+int load(char*, char*); //Считывает программу
 
 int main(int argc, char *argv[]) {
     char *file_name = argv[1]; //Имя файла программы
@@ -27,20 +22,20 @@ int main(int argc, char *argv[]) {
     }
 
     //Выделение памяти для программы
-    if (!(p_buf = (char *) malloc(PROG_SIZE))) {
-        printf("Error allocating memory");
+    if (!(p_buf = (char *) malloc(size))) { //вместо 500 можно поставить другое значение
+        printf("memory error");
         exit(1);
     }
 
     //Загрузка программы
-    if (!loadProgram(p_buf, file_name)) exit(1);
+    if (!load(p_buf, file_name)) exit(1);
 
     program = p_buf;
     start(program);
     return 0;
 }
 
-int loadProgram(char *p, char *fname) {
+int load(char *p, char *fname) {
     FILE *file;
 
     if (!(file = fopen(fname, "r"))) //Открываем только на чтение
@@ -52,10 +47,10 @@ int loadProgram(char *p, char *fname) {
         *p = (char) getc(file);
         p++;
         i++;
-        if (i == PROG_SIZE)
-            p_buf = (char*) realloc(p_buf, (size_t) (i + PROG_SIZE));
+        if (i == size)
+            p_buf = (char*) realloc(p_buf, (size_t) (i + size));
     } while (!feof(file));
-    *(p - 1) = '\0'; //Символ конца программы
+    *(p - 1) = '\0';
     fclose(file);
     return 1;
 }

@@ -1,0 +1,12 @@
+x = 2
+GOSUB 1
+IF x <= 10 THEN
+x = x + 5
+ELSE
+x = 5
+END FI
+PRINT x
+ENDPR
+1
+x = x + 5
+RETURN

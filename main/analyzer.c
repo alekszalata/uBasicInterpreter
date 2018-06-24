@@ -1,10 +1,11 @@
+#include <setjmp.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <ctype.h>
 #include <mem.h>
-#include <setjmp.h>
-#include <stdlib.h>
 
-//Типы лексем
+
+//types
 #define DELIMITER  1 //Разделитель
 #define VARIABLE   2 //Переменная
 #define NUMBER     3 //Число
@@ -22,15 +23,18 @@
 #define RETURN 17
 #define EOL 18 //Конец строки файла
 #define END 19
-#define FINISHED 20 //Конец программы
-#define FI 21
+#define FI 20 //END FI после IF
+#define  ENDPR 21 //конец программы TODO попробовать сделать END один для цикла и для конца программы
+#define FINISHED 22 //Конец программы
+
 
 //-------------------------------------------------------------
 
 //Объявление переменных
-#define LAB_LEN 2  //длинна имени метки
-#define NUM_LAB 100 //длинна массива меток
-#define SUB_NEST 25 //длинна стека для GOSUB
+#define STACK_LENGTH 25 //длинна стека для GOSUB
+#define LABEL_LENGTH 2  //длинна имени метки
+#define LABEL_ARRAY_LENGTH 100 //длинна массива меток
+
 
 char *program;
 char token[80]; //Строковое представление лексемы
@@ -38,7 +42,7 @@ int token_int; //Внутреннее представление лексемы
 int token_type; //Тип лексемы
 jmp_buf e_buf;
 
-char *gStack[SUB_NEST]; //Стек подпрограмм GOSUB
+char *gStack[STACK_LENGTH]; //Стек подпрограмм GOSUB
 int gIndex; //Индекс верхней части стека
 
 struct command {
@@ -50,31 +54,32 @@ struct command {
         "IF", IF,
         "THEN", THEN,
         "ELSE", ELSE,
-        "FI", FI,
         "GOTO", GOTO,
         "GOSUB", GOSUB,
         "RETURN", RETURN,
-        "END", END};
+        "END", END,
+        "FI", FI,
+        "ENDPR",ENDPR};
 
 struct label {
-    char name[LAB_LEN]; //Имя метки
+    char name[LABEL_LENGTH]; //Имя метки
     char *p; //Указатель на место размещения в программе
 };
-struct label labels[NUM_LAB];
+struct label labels[LABEL_ARRAY_LENGTH];
 
 int numberOfValues = 0;
 struct variable {
-    char name[80]; //имя переменной
+    char name[1]; //имя переменнойTODO добавить ошибку о длине переменной
     int value; //зачение переменной
 } *p_variable;
 
 //Объявление функций
 int getToken(); //Достает очередную лексему
 
-void putBack(); //Возвращает лексему во входной поток
+void putBack(); //Возвращает лексему во входной поток(идёт на одну лексему назад)
 void findEol(); //Переходит на следующую строку
 int isDelimetr(char); //Проверяет является ли символ разделителем
-void sError(int); //Сделать ошибки более информативными
+void sError(int); // TODO сделать ошибки более информативными
 int getCommandNumber(char *); //Возвращает внутреннее представление команды
 
 void assignment(); //Присваивает значение переменной
@@ -119,6 +124,8 @@ void start(char *p) {
         //Проверка на команду
         if (token_type == COMMAND) {
             switch (token_int) {
+                case ENDPR:
+                    exit(0);
                 case PRINT:
                     printStatement();
                     break;
@@ -174,7 +181,7 @@ int getToken() {
     }
 
     while (isspace(*program))
-        program++; //Пропускаем пробелы; Перенести в начало, реализовав свою функцию, чтоб \n не удалялся TODO
+        program++; //Пропускаем пробелы;
 
     //Проверка на разделитель
     if (strchr("+-*/%=:,()><", *program)) {
@@ -220,13 +227,11 @@ int getToken() {
 }
 
 int isDelimetr(char c) {
-    if (strchr(" !;,+-<>\'/*%=()\"", c) || c == 9 || c == '\r' || c == 0 || c == '\n')
+    if (strchr(" !;,+-<>\'/*%=()\"", c) || c == '\r' || c == '\n')
         return 1;
     return 0;
 }
 
-//Чем я думал? Можно же просто аргументом строку подавать...
-//Обязательно когда-нибудь перепишу
 void sError(int error) {
     static char *e[] = {
             "error",
@@ -352,11 +357,7 @@ void arithmetic(char o, int *r, int *h) {
 }
 
 void getExpression(int *result) {
-    getToken();
-//    if (!*token) {
-//        sError(0);
-//        return;
-//    }
+    getToken(); //   TODO добавить проверку на ошибку
     mainCount(result);
     putBack();
 }
@@ -540,7 +541,7 @@ void ifStatement() {
             do {
                 getToken();
                 if (token_int == END) {
-                    sError(0); //Прописать ошибку (Ожидался ELSE) TODO
+                    sError(0); // TODO Ожидался ELSE)
                 }
             } while (token_int != ELSE);
         } else findEol(); //Если ложь - переходим на следующую строку
@@ -553,7 +554,7 @@ void notElse() {
         if (token_int == END) {
             getToken();
             if (token_int != FI)
-                sError(0); //Прописать ошибку (Ожидался END FI) TODO
+                sError(0); //  TODO Ожидался END FI
         }
     } while (token_int != FI);
 }
@@ -562,13 +563,13 @@ void gotoStatement() {
     char *location;
 
     getToken(); //Получаем метку перехода
-    location = findLabel(token);  //Сделать ошибку TODO
+    location = findLabel(token);  // TODO Сделать проверку на ошибку
     program = location; //Старт программы с указанной точки
 }
 
 //Инициализация массива хранения меток
 void labelInit() {
-    for (int i = 0; i < NUM_LAB; i++)
+    for (int i = 0; i < LABEL_ARRAY_LENGTH; i++)
         labels[i].name[0] = '\0';
 }
 
@@ -608,7 +609,7 @@ void scanLabels() {
 }
 
 char *findLabel(char *s) {
-    for (int i = 0; i < NUM_LAB; i++)
+    for (int i = 0; i < LABEL_ARRAY_LENGTH; i++)
         if (!strcmp(labels[i].name, s)) {
             return labels[i].p;
         }
@@ -618,7 +619,7 @@ char *findLabel(char *s) {
 
 int getNextLabel(char *s) {
 
-    for (int i = 0; i < NUM_LAB; i++) {
+    for (int i = 0; i < LABEL_ARRAY_LENGTH; i++) {
         if (labels[i].name[0] == 0) return i;
         if (!strcmp(labels[i].name, s)) return -2;
     }
@@ -630,7 +631,7 @@ void gosubStatement() {
     getToken();
 
     //Поиск метки вызова
-    location = findLabel(token); //Сделать ошибку TODO
+    location = findLabel(token); // TODO сделать проверку на ошибку
     gosubPush(program); //Запомним место, куда вернемся
     program = location; //Старт программы с указанной точки
 }
@@ -643,7 +644,7 @@ void returnStatement() {
 //Помещает данные в стек GOSUB
 void gosubPush(char *s) {
     gIndex++;
-    if (gIndex == SUB_NEST) {
+    if (gIndex == STACK_LENGTH) {
         sError(0);
         return;
     }
@@ -669,7 +670,7 @@ void inputStatement() {
         getToken();
         if (*token != ',') sError(0);
         getToken();
-    } else printf("Write data: ");
+    } else printf("Write your data: ");
     if ((var = findV(token)) == NULL)
         var = addV(token);
     scanf("%d", &i);   //Чтение входных данных
