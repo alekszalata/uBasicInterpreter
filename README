@@ -1,6 +1,6 @@
 Интерпретатор uBasic
 
-Для запуска после билда в консоли написать: <executable file>.exe <program file>.txt
+Для запуска после билда в консоли использовать: <executable file>.exe <program file>.txt
 TODO добавить тесты для GOTO , INPUT
 TODO сборка с помощью make
 TODO доделать todo в коде
