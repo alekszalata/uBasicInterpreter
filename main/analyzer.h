@@ -3,4 +3,4 @@
 
 void start(char*);
 
-#endif //INTERPRETERBASIC_ANALYZER_H
+#endif
