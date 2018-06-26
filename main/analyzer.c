@@ -24,7 +24,7 @@
 #define EOL 18 //Конец строки файла
 #define END 19
 #define FI 20 //END FI после IF
-#define  ENDPR 21 //конец программы TODO попробовать сделать один END:  для цикла и для конца программы
+#define  ENDPR 21 //конец программы TODO попробовать сделать один END:d  для цикла и для конца программы
 #define FINISHED 22 //Конец программы
 
 
@@ -49,19 +49,19 @@ struct command {
     char name[10];
     int token_int;
 } tableCommand[] = {
-        "PRINT", PRINT,
-        "INPUT", INPUT,
-        "IF", IF,
-        "THEN", THEN,
-        "ELSE", ELSE,
-        "GOTO", GOTO,
-        "GOSUB", GOSUB,
-        "RETURN", RETURN,
-        "END", END,
-        "FI", FI,
-        "ENDPR",ENDPR};
+        {"PRINT", PRINT},
+        {"INPUT", INPUT},
+        {"IF", IF},
+        {"THEN", THEN},
+        {"ELSE", ELSE},
+        {"GOTO", GOTO},
+        {"GOSUB", GOSUB},
+        {"RETURN", RETURN},
+        {"END", END},
+        {"FI", FI},
+        {"ENDPR",ENDPR}};
 
-struct label {
+struct label {                   //для GOSUB
     char name[LABEL_LENGTH]; //Имя метки
     char *p; //Указатель на место размещения в программе
 };
@@ -69,7 +69,7 @@ struct label labels[LABEL_ARRAY_LENGTH];
 
 int numberOfValues = 0;
 struct variable {
-    char name[1]; //имя переменнойTODO добавить ошибку о длине переменной
+    char name[1]; //имя переменной TODO добавить ошибку о длине переменной
     int value; //зачение переменной
 } *p_variable;
 
@@ -196,7 +196,7 @@ int getToken() {
     if (*program == '"') {
         program++;
         while (*program != '"' && *program != '\n') *temp++ = *program++;
-        if (*program == '\n') sError(0);
+        if (*program == '\n') sError(0); //TODO ожидалась ошибка нет кавычек
         program++;
         *temp = 0;
         return (token_type = QUOTE);
@@ -224,6 +224,7 @@ int getToken() {
         return token_type;
     }
     sError(0);
+    return token_type; //до сюда он не дойдет
 }
 
 int isDelimetr(char c) {
@@ -241,13 +242,11 @@ void sError(int error) {
 }
 
 int getCommandNumber(char *t) {
-
     //Поиск лексемы в таблице операторов
     for (int i = 0; *tableCommand[i].name; i++) {
         if (!strcmp(tableCommand[i].name, t))
             return tableCommand[i].token_int;
     }
-
     return 0; //Незнакомый оператор
 }
 
@@ -288,7 +287,7 @@ void helpCount_1(int *result) {
 void helpCount_2(int *result) {
     char operation;
     operation = 0;
-    if ((token_type == DELIMITER) && *token == '+' || *token == '-') {
+    if ((token_type == DELIMITER) && (*token == '+' || *token == '-')) {
         operation = *token;
         getToken();
     }
@@ -303,7 +302,7 @@ void helpCount_3(int *result) {
         getToken();
         mainCount(result);
         if (*token != ')')
-            sError(0);
+            sError(0); //TODO ошибка об ожидании скобки
         getToken();
     } else
         value(result);
@@ -317,7 +316,7 @@ void value(int *result) {
             getToken();
             return;
         case NUMBER:
-            *result = atoi(token);
+            *result = atoi(token); //atoi из str в int
             getToken();
             return;
         default:
@@ -356,7 +355,7 @@ void arithmetic(char o, int *r, int *h) {
     }
 }
 
-void getExpression(int *result) {
+void getExpression(int *result) {  //вычисление значения переменной
     getToken(); //   TODO добавить проверку на ошибку
     mainCount(result);
     putBack();
@@ -427,7 +426,7 @@ void assignment() {
 void findEol() {
     while (*program != '\n' && *program != '\0')
         program++;
-    if (*program)
+    if (*program) //попали на  \n и \0 делаем program++
         program++;
 }
 
@@ -454,7 +453,7 @@ void printStatement() {
             sError(0);
     } while (*token == ',');
 
-    if (token_int == EOL || token_int == FINISHED) {
+    if (token_int == EOL || token_int == FINISHED) { //после , или ; ничего не идёт
         if (lastDelim != ';' && lastDelim != ',') printf("\n");
         else sError(0);
     } else sError(0); //Отсутствует ',' или ';'
@@ -605,7 +604,7 @@ void scanLabels() {
         //Если строка не помечена, переход к следующей
         if (token_int != EOL) findEol();
     } while (token_int != FINISHED);
-    program = temp; //Восстанавливаем начальное значение
+    program = temp;
 }
 
 char *findLabel(char *s) {

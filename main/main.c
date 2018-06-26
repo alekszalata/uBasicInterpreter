@@ -22,7 +22,7 @@ int main(int argc, char *argv[]) {
     }
 
     //Выделение памяти для программы
-    if (!(p_buf = (char *) malloc(size))) { //вместо 500 можно поставить другое значение
+    if (!(p_buf = (char *) malloc(size))) {
         printf("memory error");
         exit(1);
     }
