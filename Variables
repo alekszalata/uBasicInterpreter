@@ -1,0 +1,11 @@
+a=5
+b=3
+a=a+1
+b=2+(a+2)*3
+c=-a
+c=(3-c)/3
+A = 3
+PRINT "expected to be  6 and a=",a
+PRINT "expected to be  26 and b=",b
+PRINT "expected to be  3 and c=",c
+PRINT "A is not the same as a A =",A

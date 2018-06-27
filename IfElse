@@ -1,0 +1,14 @@
+x = 2
+IF x <= 10 THEN
+x = x + 5
+ELSE
+x = 5
+END FI
+PRINT "expected to be 7 and x=", x
+z = 6
+IF z <> 6 THEN
+z = 10
+ELSE
+z = 0
+END FI
+PRINT "expected to be 0 and z=",z

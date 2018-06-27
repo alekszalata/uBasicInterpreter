@@ -1,7 +1,5 @@
 Интерпретатор uBasic
 
 Для запуска использовать: <executable file>.exe <program file>.txt
-TODO добавить тесты для GOTO , INPUT
-TODO сборка с помощью make
-TODO доделать todo в коде
+TODO сделать ошибки более информативными
 

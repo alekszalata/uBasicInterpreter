@@ -540,7 +540,7 @@ void ifStatement() {
             do {
                 getToken();
                 if (token_int == END) {
-                    sError(0); // TODO Ожидался ELSE)
+                    sError(0); // TODO Ожидался ELSE
                 }
             } while (token_int != ELSE);
         } else findEol(); //Если ложь - переходим на следующую строку

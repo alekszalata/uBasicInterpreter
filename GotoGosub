@@ -1,0 +1,13 @@
+x = 5
+y = 24/4
+GOTO 1
+PRINT "this text won't be printed"
+2
+z = x+y
+PRINT "expected to be 11 and z=" , z
+RETURN
+1
+z = y%x
+PRINT "expected to be 1 and z=" , z
+GOSUB 2
+PRINT "finished"

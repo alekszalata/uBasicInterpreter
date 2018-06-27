@@ -1,0 +1,10 @@
+PRINT "5"
+PRINT 4
+a = 8
+b = 5
+PRINT a-b
+
+INPUT c
+PRINT "the next number is ", c
+INPUT "print the last number: ", d
+PRINT "and the last number is ", d
