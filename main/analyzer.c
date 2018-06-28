@@ -23,9 +23,8 @@
 #define RETURN 17
 #define EOL 18 //Конец строки файла
 #define END 19
-#define FI 20 //END FI после IF
-#define  ENDPR 21 //конец программы TODO попробовать сделать один END:d  для цикла и для конца программы
-#define FINISHED 22 //Конец программы
+#define FI 20
+#define FINISHED 21 //Конец программы
 
 
 //-------------------------------------------------------------
@@ -58,8 +57,7 @@ struct command {
         {"GOSUB", GOSUB},
         {"RETURN", RETURN},
         {"END", END},
-        {"FI", FI},
-        {"ENDPR",ENDPR}};
+        {"FI", FI}};
 
 struct label {                   //для GOSUB
     char name[LABEL_LENGTH]; //Имя метки
@@ -69,7 +67,7 @@ struct label labels[LABEL_ARRAY_LENGTH];
 
 int numberOfValues = 0;
 struct variable {
-    char name[1]; //имя переменной TODO добавить ошибку о длине переменной
+    char name[1]; //имя переменной
     int value; //зачение переменной
 } *p_variable;
 
@@ -79,7 +77,7 @@ int getToken(); //Достает очередную лексему
 void putBack(); //Возвращает лексему во входной поток(идёт на одну лексему назад)
 void findEol(); //Переходит на следующую строку
 int isDelimetr(char); //Проверяет является ли символ разделителем
-void sError(int); // TODO сделать ошибки более информативными
+void sError(int);
 int getCommandNumber(char *); //Возвращает внутреннее представление команды
 
 void assignment(); //Присваивает значение переменной
@@ -95,6 +93,8 @@ void scanLabels(); //Находит все метки
 void labelInit(); //Заполняет массив с метками нулями
 char *findLabel(char *); //Возвращает метку
 
+
+
 void ifStatement();
 void notElse();
 void gotoStatement();
@@ -104,6 +104,7 @@ void gosubPush(char *);
 char *gosubPop();
 void printStatement();
 void inputStatement();
+void checkEnd(); //проверка если встретили END конец ли это программы
 
 void start(char *p) {
     program = p;
@@ -124,8 +125,6 @@ void start(char *p) {
         //Проверка на команду
         if (token_type == COMMAND) {
             switch (token_int) {
-                case ENDPR:
-                    exit(0);
                 case PRINT:
                     printStatement();
                     break;
@@ -148,7 +147,7 @@ void start(char *p) {
                     returnStatement();
                     break;
                 case END:
-                    notElse();
+                    checkEnd();
                 default:
                     break;
             }
@@ -196,7 +195,7 @@ int getToken() {
     if (*program == '"') {
         program++;
         while (*program != '"' && *program != '\n') *temp++ = *program++;
-        if (*program == '\n') sError(0); //TODO ожидалась ошибка нет кавычек
+        if (*program == '\n') sError(4);
         program++;
         *temp = 0;
         return (token_type = QUOTE);
@@ -223,8 +222,8 @@ int getToken() {
             token_type = COMMAND;
         return token_type;
     }
-    sError(0);
-    return token_type; //до сюда он не дойдет
+    sError(5);
+    return token_type = FINISHED;
 }
 
 int isDelimetr(char c) {
@@ -235,7 +234,22 @@ int isDelimetr(char c) {
 
 void sError(int error) {
     static char *e[] = {
+            "wrong type of data in your variable",
+            "then was expected",
+            "END FI was expected",
+            "parenthesis was expected",
+            "closing QUOTES was expected",
+            "wrong syntax",
+            "wrong argument in PRINT statement",
+            "missing argument in PRINT statement",
             "error",
+            "error in IF condition",
+            "stack for labels is full",
+            "there is no such label",
+            "GOSUB return stack is empty",
+            "there is not variable to read data",
+            "there is END FI but there is not IF statement",
+
     };
     printf("%s\n", e[error]);
     longjmp(e_buf, 1); //Возврат в точку сохранения
@@ -302,7 +316,7 @@ void helpCount_3(int *result) {
         getToken();
         mainCount(result);
         if (*token != ')')
-            sError(0); //TODO ошибка об ожидании скобки
+            sError(3);
         getToken();
     } else
         value(result);
@@ -356,7 +370,7 @@ void arithmetic(char o, int *r, int *h) {
 }
 
 void getExpression(int *result) {  //вычисление значения переменной
-    getToken(); //   TODO добавить проверку на ошибку
+    getToken(); //
     mainCount(result);
     putBack();
 }
@@ -450,13 +464,13 @@ void printStatement() {
         lastDelim = *token;
 
         if (*token != ',' && token_int != EOL && token_int != FINISHED)
-            sError(0);
+            sError(6);
     } while (*token == ',');
 
-    if (token_int == EOL || token_int == FINISHED) { //после , или ; ничего не идёт
+    if (token_int == EOL || token_int == FINISHED) {
         if (lastDelim != ';' && lastDelim != ',') printf("\n");
-        else sError(0);
-    } else sError(0); //Отсутствует ',' или ';'
+        else sError(7); //после , или ; ничего не идёт
+    } else sError(8); //Отсутствует ',' или ';'
 }
 
 void ifStatement() {
@@ -466,7 +480,7 @@ void ifStatement() {
     getExpression(&x); //Получаем левое выражение
     getToken(); //Получаем оператор
     if (!strchr("=<>", *token)) {
-        sError(0);      //Недопустимый оператор
+        sError(9);      //Недопустимый оператор
         return;
     }
     operation = *token;
@@ -491,7 +505,7 @@ void ifStatement() {
                        if (x != y) cond = 1;
                        break;
                    case '<':
-                       sError(0);
+                       sError(9);
                        return;
                }
            } else {
@@ -511,10 +525,10 @@ void ifStatement() {
                         if (x >= y) cond = 1;
                         break;
                     case '>' :
-                        sError(0);
+                        sError(9);
                         return;
                     case '<':
-                        sError(0);
+                        sError(9);
                         return;
                 }
             } else {
@@ -530,7 +544,7 @@ void ifStatement() {
     if (cond) {  //Если значение IF "истина"
         getToken();
         if (token_int != THEN) {
-            sError(0);
+            sError(1);
             return;
         }
     } else {
@@ -540,9 +554,12 @@ void ifStatement() {
             do {
                 getToken();
                 if (token_int == END) {
-                    sError(0); // TODO Ожидался ELSE
+                    getToken();
+                    if (token_int != FI) {
+                        sError(2);
+                    } else break;
                 }
-            } while (token_int != ELSE);
+            } while (token_int != ELSE || token_int != END);
         } else findEol(); //Если ложь - переходим на следующую строку
     }
 }
@@ -553,7 +570,7 @@ void notElse() {
         if (token_int == END) {
             getToken();
             if (token_int != FI)
-                sError(0); //  TODO Ожидался END FI
+                sError(2);
         }
     } while (token_int != FI);
 }
@@ -562,7 +579,7 @@ void gotoStatement() {
     char *location;
 
     getToken(); //Получаем метку перехода
-    location = findLabel(token);  // TODO Сделать проверку на ошибку
+    location = findLabel(token);
     program = location; //Старт программы с указанной точки
 }
 
@@ -594,9 +611,9 @@ void scanLabels() {
             location = getNextLabel(token);
             if (location == -1 || location == -2) {
                 if (location == -1)
-                    sError(0);
+                    sError(11);
                 else
-                    sError(0);
+                    sError(11);
             }
             strcpy(labels[location].name, token);
             labels[location].p = program; //Текущий указатель программы
@@ -612,7 +629,7 @@ char *findLabel(char *s) {
         if (!strcmp(labels[i].name, s)) {
             return labels[i].p;
         }
-    return '\0'; //Ошибка
+    return '\0';
 }
 
 
@@ -630,7 +647,7 @@ void gosubStatement() {
     getToken();
 
     //Поиск метки вызова
-    location = findLabel(token); // TODO сделать проверку на ошибку
+    location = findLabel(token);
     gosubPush(program); //Запомним место, куда вернемся
     program = location; //Старт программы с указанной точки
 }
@@ -644,7 +661,7 @@ void returnStatement() {
 void gosubPush(char *s) {
     gIndex++;
     if (gIndex == STACK_LENGTH) {
-        sError(0);
+        sError(10);
         return;
     }
     gStack[gIndex] = s;
@@ -653,7 +670,7 @@ void gosubPush(char *s) {
 //Достает данные из стека GOSUB
 char *gosubPop() {
     if (gIndex == 0) {
-        sError(0);
+        sError(12);
         return '\0';
     }
     return (gStack[gIndex--]);
@@ -667,13 +684,22 @@ void inputStatement() {
     if (token_type == QUOTE) {
         printf(token); //Если строка есть, проверка запятой
         getToken();
-        if (*token != ',') sError(0);
+        if (*token != ',') sError(13);
         getToken();
     } else printf("Write your data: ");
     if ((var = findV(token)) == NULL)
         var = addV(token);
     scanf("%d", &i);   //Чтение входных данных
     setValue(var, i);  //Сохранение данных
+}
+
+void checkEnd() {
+    getToken();
+    if (token_int == FI ) {
+        sError(14);
+    } else  {
+        if (token_int == EOL || token_int == FINISHED) exit(0);
+    }
 }
 
 

@@ -1,10 +1,9 @@
-x = 2
+x = 11
 IF x <= 10 THEN
 x = x + 5
-ELSE
-x = 5
 END FI
 PRINT "expected to be 7 and x=", x
+END FI
 z = 6
 IF z <> 6 THEN
 z = 10
