@@ -1,9 +1,10 @@
 x = 11
 IF x <= 10 THEN
 x = x + 5
+ELSE
+x = 100
 END FI
-PRINT "expected to be 7 and x=", x
-END FI
+PRINT "expected to be 100 and x=", x
 z = 6
 IF z <> 6 THEN
 z = 10
@@ -11,3 +12,14 @@ ELSE
 z = 0
 END FI
 PRINT "expected to be 0 and z=",z
+y = 3
+IF y >= 3 THEN
+PRINT "y >= 3"
+END FI
+b = x+y
+IF b<x THEN
+PRINT "b<x"
+ELSE
+PRINT "b>x"
+END FI
+END

@@ -26,9 +26,6 @@
 #define FI 20
 #define FINISHED 21 //Конец программы
 
-
-//-------------------------------------------------------------
-
 //Объявление переменных
 #define STACK_LENGTH 25 //длинна стека для GOSUB
 #define LABEL_LENGTH 2  //длинна имени метки
@@ -40,6 +37,7 @@ char token[80]; //Строковое представление лексемы
 int token_int; //Внутреннее представление лексемы
 int token_type; //Тип лексемы
 jmp_buf e_buf;
+int numberOfIfs;
 
 char *gStack[STACK_LENGTH]; //Стек подпрограмм GOSUB
 int gIndex; //Индекс верхней части стека
@@ -48,16 +46,16 @@ struct command {
     char name[10];
     int token_int;
 } tableCommand[] = {
-        {"PRINT", PRINT},
-        {"INPUT", INPUT},
-        {"IF", IF},
-        {"THEN", THEN},
-        {"ELSE", ELSE},
-        {"GOTO", GOTO},
-        {"GOSUB", GOSUB},
+        {"PRINT",  PRINT},
+        {"INPUT",  INPUT},
+        {"IF",     IF},
+        {"THEN",   THEN},
+        {"ELSE",   ELSE},
+        {"GOTO",   GOTO},
+        {"GOSUB",  GOSUB},
         {"RETURN", RETURN},
-        {"END", END},
-        {"FI", FI}};
+        {"END",    END},
+        {"FI",     FI}};
 
 struct label {                   //для GOSUB
     char name[LABEL_LENGTH]; //Имя метки
@@ -78,10 +76,12 @@ void putBack(); //Возвращает лексему во входной пот
 void findEol(); //Переходит на следующую строку
 int isDelimetr(char); //Проверяет является ли символ разделителем
 void sError(int);
+
 int getCommandNumber(char *); //Возвращает внутреннее представление команды
 
 void assignment(); //Присваивает значение переменной
-void mainCount(int *), helpCount_1(int *), helpCount_2(int *), helpCount_3(int *); //Уровни анализа арифметической операции
+void mainCount(int *), helpCount_1(int *), helpCount_2(int *), helpCount_3(
+        int *); //Уровни анализа арифметической операции
 void value(int *); //Определение значения переменной
 void unary(char, int *); //Изменение знака
 void arithmetic(char, int *, int *); //Примитивные операции
@@ -96,18 +96,28 @@ char *findLabel(char *); //Возвращает метку
 
 
 void ifStatement();
+
 void notElse();
+
 void gotoStatement();
+
 void gosubStatement();
+
 void returnStatement();
+
 void gosubPush(char *);
+
 char *gosubPop();
+
 void printStatement();
+
 void inputStatement();
+
 void checkEnd(); //проверка если встретили END конец ли это программы
 
 void start(char *p) {
     program = p;
+    numberOfIfs = 0;
 
     if (setjmp(e_buf)) exit(1); //Инициализация буфера нелокальных переходов
 
@@ -132,6 +142,7 @@ void start(char *p) {
                     inputStatement();
                     break;
                 case IF:
+                    numberOfIfs += 1;
                     ifStatement();
                     break;
                 case ELSE:
@@ -492,34 +503,34 @@ void ifStatement() {
             if (x == y) cond = 1;
             break;
         case '<':
-           getToken();
-           if (strchr("=<>",*token)) {
-               operationSecond = *token;
-               switch (operationSecond){
-                   case '=':
-                       getExpression(&y);
-                       if (x <= y) cond = 1;
-                       break;
-                   case '>' :
-                       getExpression(&y);
-                       if (x != y) cond = 1;
-                       break;
-                   case '<':
-                       sError(9);
-                       return;
-               }
-           } else {
-               putBack();
-               getExpression(&y);
-               if (x < y) cond = 1;
-               break;
-           }
-           break;
+            getToken();
+            if (strchr("=<>", *token)) {
+                operationSecond = *token;
+                switch (operationSecond) {
+                    case '=':
+                        getExpression(&y);
+                        if (x <= y) cond = 1;
+                        break;
+                    case '>' :
+                        getExpression(&y);
+                        if (x != y) cond = 1;
+                        break;
+                    case '<':
+                        sError(9);
+                        return;
+                }
+            } else {
+                putBack();
+                getExpression(&y);
+                if (x < y) cond = 1;
+                break;
+            }
+            break;
         case '>':
             getToken();
-            if (strchr("=<>",*token)) {
+            if (strchr("=<>", *token)) {
                 operationSecond = *token;
-                switch (operationSecond){
+                switch (operationSecond) {
                     case '=':
                         getExpression(&y);
                         if (x >= y) cond = 1;
@@ -559,7 +570,7 @@ void ifStatement() {
                         sError(2);
                     } else break;
                 }
-            } while (token_int != ELSE || token_int != END);
+            } while (token_int != ELSE);
         } else findEol(); //Если ложь - переходим на следующую строку
     }
 }
@@ -695,9 +706,10 @@ void inputStatement() {
 
 void checkEnd() {
     getToken();
-    if (token_int == FI ) {
-        sError(14);
-    } else  {
+    if (token_int == FI) {
+        if (numberOfIfs == 0 )sError(14);
+        else numberOfIfs -= 1;
+    } else {
         if (token_int == EOL || token_int == FINISHED) exit(0);
     }
 }
